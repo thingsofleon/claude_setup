@@ -9,7 +9,7 @@ A Claude Code agent workflow system that automates the software development life
 2. Go to the New Project repo
    - `rsync -av --exclude='.git' --exclude='README.md' <path to claude_setup> .`
 
-## Quick Start
+## How to use once in a project repo
 
 ```bash
 # Start development from a description
@@ -60,7 +60,7 @@ PLANNING → AWAITING_APPROVAL → CODING → REVIEWING → TESTING → DOCUMENT
 - Failed reviews/tests automatically retry (max 3 attempts)
 - All state persisted in `.claude/tasks/` for recovery
 
-## Project Structure
+## Claude Structure
 
 ```
 .claude/
