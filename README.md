@@ -2,6 +2,13 @@
 
 A Claude Code agent workflow system that automates the software development lifecycle.
 
+## Adding to New Project
+1. Go to the local claude_setup repo
+   - `git checkout main`
+   - `git pull`
+2. Go to the New Project repo
+   - `rsync -av --exclude='.git' --exclude='README.md' <path to claude_setup> .`
+
 ## Quick Start
 
 ```bash
