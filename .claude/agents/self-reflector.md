@@ -296,13 +296,21 @@ git diff --cached --quiet || git commit -m "chore: update learnings from ISSUE-<
 Refs: #<issue-number>"
 
 git push origin HEAD
+```
 
-# Mark draft PR as ready for review (PR was created by Architect)
-# GitHub
-gh pr ready
+### 8. Create or Update Pull Request
 
-# Update PR body with final summary
-gh pr edit --body "$(cat <<'EOF'
+**IMPORTANT:** Always ensure a PR exists. Check first, create if needed.
+
+```bash
+# GitHub - Check if PR exists for current branch
+PR_EXISTS=$(gh pr view --json number 2>/dev/null | jq -r '.number' || echo "")
+
+if [ -z "$PR_EXISTS" ]; then
+    # Create new PR if none exists
+    gh pr create \
+      --title "<type>: <title from issue>" \
+      --body "$(cat <<'EOF'
 Closes #<issue-number>
 
 ## Summary
@@ -318,9 +326,38 @@ Closes #<issue-number>
 <doc updates>
 EOF
 )"
+else
+    # PR exists - mark as ready and update body
+    gh pr ready
+    gh pr edit --body "$(cat <<'EOF'
+Closes #<issue-number>
 
-# GitLab - mark MR ready
-glab mr update --ready
+## Summary
+<summary from task file>
+
+## Changes
+<list of changes>
+
+## Testing
+<test summary>
+
+## Documentation
+<doc updates>
+EOF
+)"
+fi
+
+# GitLab
+MR_EXISTS=$(glab mr view 2>/dev/null && echo "yes" || echo "")
+
+if [ -z "$MR_EXISTS" ]; then
+    glab mr create \
+      --title "<type>: <title>" \
+      --description "Closes #<issue-number>..." \
+      --yes
+else
+    glab mr update --ready
+fi
 ```
 
 ## Exit Criteria
@@ -330,7 +367,7 @@ glab mr update --ready
 ✅ Failures documented (if any)
 ✅ Human preferences captured (if any)
 ✅ Learning files updated
-✅ Draft PR marked as ready for review
+✅ PR created (if not exists) or marked as ready for review
 ✅ PR body updated with final summary
 ✅ Task state set to DONE  
 
