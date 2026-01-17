@@ -1,7 +1,36 @@
 # Project Patterns
 
 > Auto-updated by SelfReflector agent. Review periodically for accuracy.
-> Last update: 2026-01-12
+> Last update: 2026-01-16
+
+## Workflow Patterns
+
+### Plugin Integration Pattern
+
+**Seen in:** ISSUE-3
+
+When official Claude plugins provide functionality that duplicates agent logic:
+
+1. Identify plugins enabled in `.claude/settings.json`
+2. Map plugin capabilities to agent responsibilities
+3. Replace manual implementations with plugin commands (e.g., `/commit`, `/code-review`)
+4. Document plugin usage in agent files with "Plugins Used" table
+5. Update CLAUDE.md to document plugin usage across workflow
+
+**Benefits:**
+- Reduces agent complexity and maintenance burden
+- Leverages specialized, well-tested plugin implementations
+- Keeps agents focused on orchestration rather than implementation
+
+**Example:**
+```markdown
+## Plugins Used
+
+| Plugin | Purpose |
+|--------|---------|
+| `commit-commands` | Automated commits with `/commit` command |
+| `code-review` | Automated code review with confidence scoring |
+```
 
 ## Architecture Patterns
 
