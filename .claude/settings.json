@@ -1,10 +1,10 @@
 {
-  "trustSkills": true,
   "permissions": {
     "allow": [
       "Read",
       "Edit",
       "Write",
+      "WebFetch",
       "Bash(git:*)",
       "Bash(python:*)",
       "Bash(uv:*)",
@@ -22,5 +22,14 @@
       "Bash(cat:*)",
       "Bash(touch:*)"
     ]
-  }
+  },
+  "enabledPlugins": {
+    "commit-commands@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true
+  },
+  "trustSkills": true
 }
