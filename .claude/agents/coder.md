@@ -9,7 +9,12 @@ Implement the solution following Test-Driven Development (TDD) methodology. Writ
 - Task file with approved plan: `.claude/tasks/ISSUE-<number>.md`
 - Feature branch (already created by Architect)
 - Learnings: `.claude/learnings/`
-- Skills: `.claude/skills/python-testing.md`, `.claude/skills/code-quality.md`
+
+## Plugins Used
+
+| Plugin | Purpose |
+|--------|---------|
+| `commit-commands` | Automated commits with `/commit` command |
 
 ## TDD Workflow
 
@@ -26,7 +31,7 @@ Implement the solution following Test-Driven Development (TDD) methodology. Writ
 │  3. Refactor if needed (REFACTOR)           │
 │          │                                  │
 │          ▼                                  │
-│  4. Commit with conventional message        │
+│  4. Commit with /commit                     │
 │          │                                  │
 │          ▼                                  │
 │  5. Next item ─────────────────────────┐    │
@@ -59,15 +64,15 @@ pip install -e ".[dev]" 2>/dev/null || pip install -r requirements-dev.txt 2>/de
 def test_<feature>_<scenario>():
     """
     Test that <expected behavior>.
-    
+
     Covers: Plan item #X
     """
     # Arrange
     <setup>
-    
+
     # Act
     <action>
-    
+
     # Assert
     <expected outcome>
 ```
@@ -105,26 +110,17 @@ pytest tests/test_<module>.py::<test_name> -v
 - Run `ruff check --fix` and `ruff format`
 - Re-run tests to ensure still passing
 
-#### Commit
+#### Commit with Plugin
 
-```bash
-# Stage changes
-git add <files>
+Use the `/commit` command which will:
+- Analyze staged and unstaged changes
+- Draft a commit message matching repo style
+- Stage relevant files
+- Create the commit with conventional format
 
-# Conventional commit
-git commit -m "<type>(<scope>): <description>
-
-<body if needed>
-
-Refs: #<issue-number>"
 ```
-
-Commit types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `refactor`: Code change that neither fixes a bug nor adds a feature
-- `test`: Adding or updating tests
-- `docs`: Documentation only
+/commit
+```
 
 ### 3. Update Plan Checkboxes
 
@@ -132,8 +128,8 @@ As each item is completed, update the task file:
 
 ```markdown
 ## Plan
-- [x] Step 1: Create rate limiter class ✓ (commit abc123)
-- [x] Step 2: Add middleware integration ✓ (commit def456)
+- [x] Step 1: Create rate limiter class ✓
+- [x] Step 2: Add middleware integration ✓
 - [ ] Step 3: Add configuration options (in progress)
 ```
 
@@ -153,8 +149,7 @@ ruff check --fix .
 ruff format .
 
 # Commit any formatting changes
-git add -A
-git diff --cached --quiet || git commit -m "style: apply ruff formatting"
+/commit
 ```
 
 ### 6. Push Changes
@@ -179,28 +174,23 @@ git push origin HEAD
 - [<timestamp>] Coder: Pushed to branch
 
 ## Current Context
-commits:
-  - abc1234: "feat(api): add rate limiter class"
-  - def5678: "feat(api): integrate rate limiter middleware"
-  - ghi9012: "test(api): add rate limiter tests"
+commits: <number of commits>
 test_summary:
   total: 15
   passed: 15
   failed: 0
 files_changed:
-  - src/api/rate_limiter.py (new)
-  - src/api/middleware.py (modified)
-  - tests/test_rate_limiter.py (new)
+  - <list of files>
 ```
 
 ## Exit Criteria
 
-✅ All plan items implemented  
-✅ All tests passing  
-✅ Code formatted with Ruff  
-✅ Changes committed with conventional commits  
-✅ Changes pushed to feature branch  
-✅ State set to REVIEWING  
+✅ All plan items implemented
+✅ All tests passing
+✅ Code formatted with Ruff
+✅ Changes committed with `/commit`
+✅ Changes pushed to feature branch
+✅ State set to REVIEWING
 
 ## Output to Orchestrator
 
@@ -248,7 +238,7 @@ git rebase --continue
 
 ## Tips
 
-1. **Small commits** - One logical change per commit
+1. **Small commits** - Use `/commit` after each logical change
 2. **Run tests frequently** - After every change
 3. **Don't over-engineer** - Minimal code to pass tests
 4. **Check learnings first** - Project patterns save time

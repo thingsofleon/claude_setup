@@ -8,17 +8,14 @@ Review code changes for security vulnerabilities, code quality issues, performan
 
 - Task file: `.claude/tasks/ISSUE-<number>.md`
 - Feature branch with commits
-- Skills: `.claude/skills/security-scanning.md`, `.claude/skills/code-quality.md`
 - Learnings: `.claude/learnings/`
 
-## Review Dimensions
+## Plugins Used
 
-| Dimension | Tools | Weight |
-|-----------|-------|--------|
-| Security | Bandit, pip-audit, manual review | Critical |
-| Code Quality | Ruff, manual review | High |
-| Architecture | Manual review vs plan | High |
-| Performance | Manual review | Medium |
+| Plugin | Purpose |
+|--------|---------|
+| `code-review` | Automated code review with parallel agents and confidence scoring |
+| `security-guidance` | Security best practices and vulnerability detection |
 
 ## Responsibilities
 
@@ -28,98 +25,29 @@ Review code changes for security vulnerabilities, code quality issues, performan
 # Ensure on correct branch
 git checkout <branch-from-task-file>
 git pull origin HEAD
-
-# Get diff against main
-git diff origin/main...HEAD --name-only > /tmp/changed_files.txt
 ```
 
-### 2. Security Review
+### 2. Automated Code Review
 
-#### 2.1 Static Analysis (Bandit)
+Run the `/code-review` command which will:
+- Launch parallel agents to independently audit changes
+- Check for CLAUDE.md compliance
+- Scan for obvious bugs in changes
+- Analyze git blame/history for context
+- Score issues 0-100 for confidence
+- Post review with high-confidence issues only (threshold: 80)
 
-```bash
-# Run Bandit on changed Python files
-bandit -r $(grep '\.py$' /tmp/changed_files.txt | tr '\n' ' ') -f json -o /tmp/bandit_report.json
-
-# Check for high/medium severity issues
-python -c "
-import json
-with open('/tmp/bandit_report.json') as f:
-    results = json.load(f)
-    issues = results.get('results', [])
-    high_med = [i for i in issues if i['issue_severity'] in ('HIGH', 'MEDIUM')]
-    if high_med:
-        for i in high_med:
-            print(f\"[{i['issue_severity']}] {i['filename']}:{i['line_number']} - {i['issue_text']}\")
-        exit(1)
-"
+```
+/code-review
 ```
 
-#### 2.2 Dependency Audit
+The `code-review` plugin handles:
+- Security scanning (replaces manual Bandit/pip-audit)
+- Code quality checks (replaces manual Ruff analysis)
+- Bug detection with confidence scoring
+- CLAUDE.md guideline compliance
 
-```bash
-# Check for vulnerable dependencies
-pip-audit --format json --output /tmp/pip_audit.json
-
-# Review results
-python -c "
-import json
-with open('/tmp/pip_audit.json') as f:
-    vulns = json.load(f)
-    if vulns:
-        for v in vulns:
-            print(f\"[VULN] {v['name']}=={v['version']}: {v['vulns'][0]['id']}\")
-        exit(1)
-"
-```
-
-#### 2.3 Manual Security Checklist
-
-Review each changed file for:
-
-- [ ] **Input validation**: All user inputs validated/sanitized
-- [ ] **SQL injection**: Parameterized queries used
-- [ ] **Secrets**: No hardcoded passwords, API keys, tokens
-- [ ] **Path traversal**: File paths properly sanitized
-- [ ] **Command injection**: Shell commands use proper escaping
-- [ ] **Authentication**: Auth checks where required
-- [ ] **Authorization**: Permission checks where required
-- [ ] **Logging**: No sensitive data logged
-- [ ] **Error handling**: Exceptions don't leak internal details
-
-### 3. Code Quality Review
-
-#### 3.1 Ruff Analysis
-
-```bash
-# Full lint check
-ruff check $(grep '\.py$' /tmp/changed_files.txt | tr '\n' ' ') --output-format json > /tmp/ruff_report.json
-
-# Count issues by severity
-python -c "
-import json
-with open('/tmp/ruff_report.json') as f:
-    issues = json.load(f)
-    if issues:
-        print(f'Found {len(issues)} linting issues')
-        for i in issues[:10]:  # Show first 10
-            print(f\"  {i['filename']}:{i['location']['row']} [{i['code']}] {i['message']}\")
-        exit(1)
-"
-```
-
-#### 3.2 Manual Quality Checklist
-
-- [ ] **Naming**: Clear, consistent naming conventions
-- [ ] **Functions**: Single responsibility, reasonable length (<50 lines)
-- [ ] **Complexity**: No deeply nested logic (max 3-4 levels)
-- [ ] **DRY**: No obvious code duplication
-- [ ] **Comments**: Complex logic is documented
-- [ ] **Type hints**: Functions have type annotations
-- [ ] **Docstrings**: Public functions documented
-- [ ] **Error messages**: Helpful and actionable
-
-### 4. Architecture Review
+### 3. Architecture Review (Manual)
 
 Compare implementation against the plan in task file:
 
@@ -130,48 +58,14 @@ Compare implementation against the plan in task file:
 - [ ] **Interfaces**: Public APIs match plan
 - [ ] **Breaking changes**: None unless planned
 
-### 5. Performance Review
+### 4. Performance Review (Manual)
 
 - [ ] **Loops**: No unnecessary iterations or N+1 patterns
 - [ ] **Memory**: No obvious memory leaks or large allocations
 - [ ] **I/O**: Async/batch where appropriate
 - [ ] **Caching**: Used where beneficial
-- [ ] **Database**: Efficient queries, proper indexing considered
 
-### 6. Generate Review Report
-
-Create a structured report:
-
-```markdown
-## Review Report - ISSUE-<number>
-
-### Security
-- **Bandit**: ✅ PASSED (0 issues) / ❌ FAILED (X issues)
-- **pip-audit**: ✅ PASSED / ❌ FAILED
-- **Manual**: ✅ PASSED / ❌ FAILED
-  - Issues: <list if any>
-
-### Code Quality
-- **Ruff**: ✅ PASSED / ❌ FAILED
-- **Manual**: ✅ PASSED / ⚠️ WARNINGS / ❌ FAILED
-  - Issues: <list if any>
-
-### Architecture
-- **Plan adherence**: ✅ PASSED / ❌ FAILED
-- **Pattern compliance**: ✅ PASSED / ❌ FAILED
-  - Issues: <list if any>
-
-### Performance
-- **Review**: ✅ PASSED / ⚠️ WARNINGS / ❌ FAILED
-  - Issues: <list if any>
-
-### Overall
-- **Verdict**: ✅ APPROVED / ❌ CHANGES REQUESTED
-- **Blocking issues**: <count>
-- **Warnings**: <count>
-```
-
-### 7. Handle Results
+### 5. Handle Results
 
 #### If APPROVED:
 
@@ -182,8 +76,7 @@ Update task file:
 - **Updated**: <timestamp>
 
 ## Progress Log
-- [<timestamp>] Reviewer: Security scan passed
-- [<timestamp>] Reviewer: Code quality check passed
+- [<timestamp>] Reviewer: /code-review passed
 - [<timestamp>] Reviewer: Architecture review passed
 - [<timestamp>] Reviewer: APPROVED - proceeding to testing
 ```
@@ -204,32 +97,25 @@ Update task file:
 ## Failures
 ### Review Attempt 1 - <timestamp>
 **Issues found:**
-1. [SECURITY] Hardcoded API key in config.py:23
-2. [QUALITY] Function too complex: process_data() has cyclomatic complexity 15
-3. [ARCHITECTURE] Unplanned dependency added: requests
+<issues from /code-review output>
 
 **Required fixes:**
-1. Move API key to environment variable
-2. Break down process_data() into smaller functions
-3. Remove requests dependency or justify in plan
+<list of required fixes>
 ```
 
 ## Exit Criteria
 
 ### For APPROVED:
-✅ Bandit security scan passed  
-✅ pip-audit passed  
-✅ Manual security review passed  
-✅ Ruff linting passed  
-✅ Architecture matches plan  
-✅ No blocking issues  
-✅ State set to TESTING  
+✅ `/code-review` passed (no high-confidence issues)
+✅ Architecture matches plan
+✅ No blocking issues
+✅ State set to TESTING
 
 ### For CHANGES REQUESTED:
-✅ All issues documented in Failures section  
-✅ Clear fix instructions provided  
-✅ State set to CODING  
-✅ Attempts counter incremented  
+✅ All issues documented in Failures section
+✅ Clear fix instructions provided
+✅ State set to CODING
+✅ Attempts counter incremented
 
 ## Output to Orchestrator
 
@@ -238,13 +124,7 @@ Update task file:
 status: success
 state: TESTING
 verdict: APPROVED
-security:
-  bandit: passed
-  pip_audit: passed
-  manual: passed
-quality:
-  ruff: passed
-  manual: passed
+code_review: passed
 architecture: passed
 performance: passed
 message: "Review passed. Proceeding to testing."
@@ -253,13 +133,7 @@ message: "Review passed. Proceeding to testing."
 status: failure
 state: CODING
 verdict: CHANGES_REQUESTED
-blocking_issues: 3
-warnings: 2
-issues:
-  - type: security
-    file: config.py
-    line: 23
-    message: "Hardcoded API key"
-    fix: "Move to environment variable"
-message: "Found 3 blocking issues. Returning to coder."
+blocking_issues: <count>
+issues: <from /code-review>
+message: "Found blocking issues. Returning to coder."
 ```

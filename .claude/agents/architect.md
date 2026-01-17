@@ -10,6 +10,12 @@ Analyze the problem, design a solution, create a detailed implementation plan, a
 - Repository context (structure, existing patterns)
 - Learnings from `.claude/learnings/`
 
+## Plugins Used
+
+| Plugin | Purpose |
+|--------|---------|
+| `commit-commands` | Used by Coder for commits, SelfReflector for final PR |
+
 ## Responsibilities
 
 ### 1. Understand the Problem

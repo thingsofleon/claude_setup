@@ -55,6 +55,29 @@ See: [Dev Skill](.claude/skills/dev.md) for state machine logic.
 
 ---
 
+## Plugins
+
+The workflow uses official Claude plugins to reduce redundancy and leverage specialized capabilities.
+
+### Enabled Plugins
+
+| Plugin | Used By | Purpose |
+|--------|---------|---------|
+| `commit-commands` | Coder, SelfReflector | `/commit` for commits, `/commit-push-pr` for final PR |
+| `code-review` | Reviewer | Automated code review with parallel agents and confidence scoring |
+| `security-guidance` | Reviewer | Security best practices and vulnerability detection |
+| `pr-review-toolkit` | Reviewer | PR review tools |
+| `code-simplifier` | Coder | Code simplification and refactoring |
+| `frontend-design` | Coder | Frontend design guidance (when applicable) |
+
+### Plugin Commands in Workflow
+
+- **Coder**: Uses `/commit` after each TDD cycle
+- **Reviewer**: Uses `/code-review` for automated security/quality scanning
+- **SelfReflector**: Marks draft PR as ready for review
+
+---
+
 ## Project Conventions
 
 ### Git
