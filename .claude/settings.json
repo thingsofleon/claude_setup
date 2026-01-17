@@ -20,7 +20,11 @@
       "Bash(mkdir:*)",
       "Bash(rm:*)",
       "Bash(cat:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Skill(dev)",
+      "Skill(dev:*)",
+      "Skill(commit-commands:commit)",
+      "Skill(commit-commands:commit:*)"
     ]
   },
   "enabledPlugins": {
