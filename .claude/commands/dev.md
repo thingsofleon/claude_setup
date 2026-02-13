@@ -10,6 +10,7 @@ Determine what the user wants:
 - `status` → Show current workflow status, then stop
 - `resume` → Resume a paused workflow from AWAITING_APPROVAL
 - `abort` → Cancel current workflow, then stop
+- `--from-plan` → **Plan-mode handoff.** A plan was already approved in plan mode. Skip architect analysis and fast-track to implementation.
 - Number (e.g., `123` or `#123`) → Start/resume workflow for that issue
 - Text description → Create new issue, then start workflow
 
@@ -42,21 +43,33 @@ Before proceeding, read these files for context:
 2. Update state to CODING
 3. Continue to Step 4 (orchestration loop)
 
+### If `--from-plan`:
+
+The user already designed and approved a plan via plan mode. The approved plan
+content is available in the current conversation context.
+
+1. Detect git platform:
+   ```bash
+   remote_url=$(git remote get-url origin 2>/dev/null)
+   # Use gh for github.com, glab for gitlab
+   ```
+2. Read and execute: `.claude/agents/architect.md` **in lightweight mode**
+   - Pass the signal that this is a `--from-plan` invocation
+   - The architect will use the already-approved plan (from conversation context)
+   - It will create issue, branch, draft PR, and set state to CODING
+3. Continue to Step 4 (orchestration loop, starting from CODING)
+
 ### If issue number or description:
 1. Detect git platform:
    ```bash
    remote_url=$(git remote get-url origin 2>/dev/null)
    # Use gh for github.com, glab for gitlab
    ```
-2. If description provided, create issue first:
-   ```bash
-   gh issue create --title "feat: <title>" --body "<description>"
-   ```
-3. Create task file at `.claude/tasks/ISSUE-<number>.md`:
+2. Create task file at `.claude/tasks/ISSUE-<number>.md`:
    ```markdown
    ## Metadata
    - **State**: PLANNING
-   - **Issue**: #<number>
+   - **Issue**: (pending)
    - **Branch**: (pending)
    - **PR**: (pending)
    - **Updated**: <timestamp>
@@ -68,7 +81,7 @@ Before proceeding, read these files for context:
    ## Progress Log
    - [<timestamp>] Orchestrator: Workflow started
    ```
-4. Continue to Step 4
+3. Continue to Step 4
 
 ---
 
@@ -83,7 +96,7 @@ WHILE state NOT IN [DONE, FAILED, AWAITING_APPROVAL]:
 
     SWITCH state:
         PLANNING:
-            Read and execute: .claude/agents/architect.md
+            Read and execute: .claude/agents/architect.md (standard mode)
 
         CODING:
             Read and execute: .claude/agents/coder.md

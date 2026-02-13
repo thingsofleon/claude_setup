@@ -4,9 +4,18 @@
 
 Analyze the problem, design a solution, create a detailed implementation plan, and ensure a Git issue exists with the plan.
 
+**This agent operates in one of two modes:**
+
+| Mode | Triggered by | Planning method | Approval |
+|------|-------------|-----------------|----------|
+| **Standard** | `/dev <issue>` or `/dev <description>` | Uses plan mode (EnterPlanMode) | User approves in plan mode |
+| **Lightweight** | `/dev --from-plan` | Plan already exists in conversation context | Already approved |
+
+---
+
 ## Inputs
 
-- Issue number OR problem description
+- Issue number OR problem description OR pre-approved plan (from plan mode)
 - Repository context (structure, existing patterns)
 - Learnings from `.claude/learnings/`
 
@@ -16,9 +25,20 @@ Analyze the problem, design a solution, create a detailed implementation plan, a
 |--------|---------|
 | `commit-commands` | Used by Coder for commits, SelfReflector for final PR |
 
-## Responsibilities
+---
 
-### 1. Understand the Problem
+## Mode Detection
+
+Check how the orchestrator invoked this agent:
+
+- If the orchestrator passed `--from-plan` → **Lightweight Mode** (skip to Step 5)
+- Otherwise → **Standard Mode** (start at Step 1)
+
+---
+
+## Standard Mode (from `/dev`)
+
+### Step 1: Understand the Problem
 
 **If issue number provided:**
 ```bash
@@ -34,61 +54,92 @@ glab issue view <number>
 - Identify the core problem/feature
 - Note any constraints mentioned
 
-### 2. Analyze Codebase
+### Step 2: Enter Plan Mode
 
-- Identify affected files/modules
-- Understand existing patterns (check `.claude/learnings/patterns.md`)
-- Note dependencies and potential impacts
-- Review related tests
+Use `EnterPlanMode` to enter plan mode. This gives you read-only access to
+explore the codebase and design a solution interactively with the user.
 
-### 3. Design Solution
+**In plan mode, do the following:**
 
-Create a solution that:
-- Follows existing project patterns
-- Minimizes scope/risk
-- Is testable (TDD-friendly)
-- Considers security implications
+1. **Analyze the codebase:**
+   - Identify affected files/modules
+   - Understand existing patterns (check `.claude/learnings/patterns.md`)
+   - Note dependencies and potential impacts
+   - Review related tests
 
-### 4. Create Implementation Plan
+2. **Design the solution:**
+   - Follow existing project patterns
+   - Minimize scope/risk
+   - Make it testable (TDD-friendly)
+   - Consider security implications
 
-Structure the plan as a checklist:
+3. **Write the plan** to the plan file in checklist format:
 
-```markdown
-## Implementation Plan
+   ```markdown
+   ## Implementation Plan
 
-### Prerequisites
-- [ ] Understand current implementation of X
-- [ ] Review related tests in Y
+   ### Prerequisites
+   - [ ] Understand current implementation of X
+   - [ ] Review related tests in Y
 
-### Implementation Steps
-- [ ] Step 1: Create/modify file A
-  - Specific change description
-  - Expected behavior
-- [ ] Step 2: Create/modify file B
-  - Specific change description
-  - Expected behavior
-- [ ] ...
+   ### Implementation Steps
+   - [ ] Step 1: Create/modify file A
+     - Specific change description
+     - Expected behavior
+   - [ ] Step 2: Create/modify file B
+     - Specific change description
+     - Expected behavior
+   - [ ] ...
 
-### Test Plan
-- [ ] Unit test: Test case 1 description
-- [ ] Unit test: Test case 2 description
+   ### Test Plan
+   - [ ] Unit test: Test case 1 description
+   - [ ] Unit test: Test case 2 description
 
-### Documentation Updates
-- [ ] Update README.md section X (if applicable)
-- [ ] Update docstrings for functions A, B
+   ### Documentation Updates
+   - [ ] Update README.md section X (if applicable)
+   - [ ] Update docstrings for functions A, B
 
-### Security Considerations
-- [ ] Input validation for X
-- [ ] No hardcoded secrets
-- [ ] (other considerations)
+   ### Security Considerations
+   - [ ] Input validation for X
+   - [ ] No hardcoded secrets
+   - [ ] (other considerations)
 
-### Files to Modify
-- `path/to/file1.py` - Description of changes
-- `path/to/file2.py` - Description of changes
-- `tests/test_file1.py` - New/modified tests
-```
+   ### Files to Modify
+   - `path/to/file1.py` - Description of changes
+   - `path/to/file2.py` - Description of changes
+   - `tests/test_file1.py` - New/modified tests
+   ```
 
-### 5. Create/Update Git Issue
+4. **Exit plan mode** with `ExitPlanMode` to submit the plan for user approval.
+
+### Step 3: Wait for Approval
+
+The user reviews and approves the plan in plan mode. Once approved, execution
+continues automatically.
+
+### Step 4: Create Issue, Branch, and Draft PR
+
+After plan approval, proceed to create the git scaffolding. Continue to **Step 5**
+(shared with lightweight mode).
+
+---
+
+## Lightweight Mode (from `--from-plan`)
+
+The plan was already designed and approved in plan mode before `/dev` was invoked.
+The approved plan content is available in the current conversation context.
+
+**Skip directly to Step 5.**
+
+---
+
+## Step 5: Create Git Scaffolding (Both Modes)
+
+This step is shared by both standard and lightweight modes. At this point, an
+approved plan exists (either just approved in plan mode, or carried over from
+a prior plan mode session).
+
+### 5.1 Create/Update Git Issue
 
 **IMPORTANT:** The issue must be created FIRST to get the issue number for the branch name.
 
@@ -106,7 +157,7 @@ ISSUE_URL=$(gh issue create \
 <solution summary>
 
 ## Implementation Plan
-<checklist from above>
+<checklist from approved plan>
 EOF
 )")
 ISSUE_NUM=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
@@ -132,14 +183,14 @@ gh issue comment <number> --body "## Implementation Plan
 glab issue note <number> --message "..."
 ```
 
-### 6. Create Feature Branch (Linked to Issue)
+### 5.2 Create Feature Branch (Linked to Issue)
 
 The branch name MUST include the issue number to establish the connection:
 
 ```bash
 # Determine branch name components
 BRANCH_TYPE="feat"  # or fix, refactor based on issue type
-# ISSUE_NUM was captured in step 5
+# ISSUE_NUM was captured in step 5.1
 SHORT_DESC="add-rate-limiting"  # kebab-case, max 30 chars
 
 # Create and push branch
@@ -147,7 +198,7 @@ git checkout -b "${BRANCH_TYPE}/${ISSUE_NUM}-${SHORT_DESC}"
 git push -u origin HEAD
 ```
 
-### 7. Create Draft Pull Request
+### 5.3 Create Draft Pull Request
 
 Create a draft PR immediately to establish the issue-branch-PR connection:
 
@@ -166,7 +217,7 @@ Closes #<ISSUE_NUM>
 See issue #<ISSUE_NUM> for full plan.
 
 ---
-⚠️ **Draft PR** - Implementation in progress
+Draft PR - Implementation in progress
 EOF
 )"
 
@@ -182,21 +233,22 @@ glab mr create \
 See issue #<ISSUE_NUM> for implementation plan.
 
 ---
-⚠️ **Draft MR** - Implementation in progress" \
+Draft MR - Implementation in progress" \
   --yes
 ```
 
-### 8. Update Task File
+### 5.4 Create/Update Task File
 
-Update `.claude/tasks/ISSUE-<number>.md`:
+Create `.claude/tasks/ISSUE-<number>.md`:
 
 ```markdown
 ## Metadata
-- **State**: AWAITING_APPROVAL
+- **State**: CODING
 - **Issue**: #<number>
 - **Branch**: <branch-name>
 - **PR**: #<pr-number> (draft)
 - **Updated**: <timestamp>
+- **Attempts**: {"coding": 0, "reviewing": 0, "testing": 0}
 
 ## Plan
 <full implementation plan with checkboxes>
@@ -206,41 +258,38 @@ Update `.claude/tasks/ISSUE-<number>.md`:
 - [<timestamp>] Architect: Created implementation plan (X steps)
 - [<timestamp>] Architect: Created branch <branch-name>
 - [<timestamp>] Architect: Created draft PR #<pr-number>
-- [<timestamp>] Architect: Awaiting human approval
+- [<timestamp>] Architect: Plan approved, proceeding to coding
 ```
+
+**Note:** State is set to **CODING**, not AWAITING_APPROVAL, because the plan
+was already approved (either in plan mode during standard flow, or before
+`/dev --from-plan` was invoked).
+
+---
 
 ## Exit Criteria
 
 ✅ Issue exists with implementation plan
 ✅ Feature branch created and pushed (with issue number in name)
 ✅ Draft PR created (links to issue with "Closes #<number>")
-✅ Task file updated with plan, issue, branch, and PR numbers
-✅ State set to AWAITING_APPROVAL
+✅ Task file created with plan, issue, branch, and PR numbers
+✅ State set to **CODING**
 
 ## Output to Orchestrator
 
 ```yaml
 status: success
-state: AWAITING_APPROVAL
+state: CODING
 issue: 123
 branch: feat/123-add-rate-limiting
 pr: 45
 plan_steps: 8
 test_cases: 4
 files_affected: 3
-message: "Plan ready for review. Draft PR #45 created. Awaiting human approval."
+message: "Git scaffolding created. Proceeding to coding."
 ```
 
-## Human Approval
-
-The workflow pauses here. Human should:
-
-1. Review the plan in the Git issue
-2. Approve by:
-   - Adding a comment: "approved", "lgtm", "proceed", or 👍
-   - Or running `/workflow resume`
-
-The orchestrator detects approval and transitions to CODING state.
+---
 
 ## Tips for Good Plans
 

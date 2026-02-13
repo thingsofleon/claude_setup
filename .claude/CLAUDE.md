@@ -4,6 +4,46 @@
 
 This repository uses an autonomous development workflow powered by Claude Code agents.
 
+---
+
+## Plan Mode and `/dev` Integration
+
+**Plan mode and `/dev` are unified.** Both entry points converge on the same
+subagent pipeline (coder → reviewer → tester → documenter → self-reflector).
+
+### Flow 1: User enters plan mode directly
+
+When the user describes an implementation task and you enter plan mode:
+
+1. Explore the codebase, design the solution, write the plan
+2. User approves the plan (via ExitPlanMode)
+3. **Immediately invoke `/dev --from-plan`** to hand off to the subagent pipeline
+4. The architect creates the issue, branch, and draft PR from the approved plan
+5. The pipeline runs: coder → reviewer → tester → documenter → self-reflector
+
+**This is mandatory.** After plan approval for any implementation task, always
+invoke `/dev --from-plan`. Do not implement directly in the main conversation.
+
+### Flow 2: User invokes `/dev` explicitly
+
+When the user runs `/dev <issue>` or `/dev <description>`:
+
+1. The architect agent uses plan mode (EnterPlanMode) to explore and design
+2. User approves the plan in plan mode
+3. The architect creates the issue, branch, and draft PR
+4. The pipeline runs: coder → reviewer → tester → documenter → self-reflector
+
+### Summary
+
+| Entry point | Who plans? | Who approves? | Then what? |
+|-------------|-----------|---------------|------------|
+| Plan mode → approve | You in plan mode | User approves plan | `/dev --from-plan` runs the pipeline |
+| `/dev <task>` | Architect via plan mode | User approves plan | Pipeline runs automatically |
+
+Both paths use plan mode for planning and the subagent pipeline for execution.
+
+---
+
 ## Commands
 
 ### `/dev <issue-number | description>`
@@ -21,14 +61,10 @@ Initiates the autonomous development workflow.
 /dev Replace the logging system with structlog
 ```
 
-**Workflow Stages:**
-1. **Architect** → Plans solution, creates/updates issue with checklist
-2. **[HUMAN APPROVAL]** → Review plan before implementation
-3. **Coder** → Implements via TDD
-4. **Reviewer** → Security, quality, architecture review
-5. **Tester** → Executes tests, ensures passing
-6. **Documenter** → Updates documentation
-7. **SelfReflector** → Captures learnings
+### `/dev --from-plan`
+
+Invoked automatically after plan mode approval. Takes the approved plan from
+the conversation context and runs the full subagent pipeline.
 
 ### `/dev status`
 
@@ -42,6 +78,14 @@ Resume a paused workflow (after human approval or failure).
 
 Cancel the current workflow.
 
+**Workflow Stages:**
+1. **Architect** → Creates issue, branch, draft PR (plan already approved)
+2. **Coder** → Implements via TDD
+3. **Reviewer** → Security, quality, architecture review
+4. **Tester** → Executes tests, ensures passing
+5. **Documenter** → Updates documentation
+6. **SelfReflector** → Captures learnings
+
 ---
 
 ## Agent System
@@ -51,7 +95,7 @@ Agents are defined in `.claude/agents/`. Each agent:
 - Reads/writes to task state file in `.claude/tasks/`
 - Has specific responsibilities and exit criteria
 
-See: [Dev Skill](.claude/skills/dev.md) for state machine logic.
+See: [Dev Command](.claude/commands/dev.md) for state machine logic.
 
 ---
 
@@ -95,7 +139,7 @@ The workflow uses official Claude plugins to reduce redundancy and leverage spec
 - Assume CLI is authenticated
 
 ### Git Rules
-Absolutely DO NOT add CLAUDE/Claude/claude/Anthropic to any commit message, issue, or PR. 
+Absolutely DO NOT add CLAUDE/Claude/claude/Anthropic to any commit message, issue, or PR.
 
 ---
 
@@ -115,8 +159,7 @@ The SelfReflector agent maintains learned patterns in `.claude/learnings/`:
 | Purpose | Location |
 |---------|----------|
 | Agent definitions | `.claude/agents/` |
+| Dev command | `.claude/commands/dev.md` |
 | Reusable skills | `.claude/skills/` |
 | Active task state | `.claude/tasks/` |
 | Learned patterns | `.claude/learnings/` |
-
-
